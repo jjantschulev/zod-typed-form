@@ -1,0 +1,29 @@
+{
+  "name": "zod-typed-form",
+  "version": "0.0.0",
+  "description": "Build and Validate HTML Forms and FormData with zod.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint",
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  }
+}
