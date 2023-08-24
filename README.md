@@ -81,7 +81,7 @@ async function onSubmit(formData: FormData) {
 
   const content = parseAndRedirectOnError({
     formData,
-    schema: postFormSchema,
+    schema: mySchema,
     redirect,
     redirectUrl: new URL(`https://example.com/path/to/form`),
     redirectParams: { hello: "world" },
