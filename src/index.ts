@@ -12,25 +12,25 @@ import {
   ZodString,
   ZodTypeDef,
   z,
-} from 'zod';
-import { ObjectPaths, Prefixes } from './types';
+} from "zod";
+import { ObjectPaths, Prefixes } from "./types";
 
 export function setFormData(
   formData: FormData | URLSearchParams,
   object: unknown,
-  path?: string,
+  path?: string
 ) {
-  const prefix = path ? `${path}.` : '';
+  const prefix = path ? `${path}.` : "";
   if (object instanceof Array || object instanceof Object) {
     Object.entries(object).forEach(([key, value]) => {
       setFormData(formData, value, prefix + key);
     });
   } else if (object === true || object === false) {
     if (object) {
-      formData.set(path ?? '', 'on');
+      formData.set(path ?? "", "on");
     }
   } else {
-    formData.set(path ?? '', String(object));
+    formData.set(path ?? "", String(object));
   }
 }
 
@@ -58,7 +58,7 @@ export function parseAndRedirectOnError<D extends ZodSchema>({
     const url = new URL(redirectUrl);
     const returnParams = new URLSearchParams(redirectParams);
     parseResult.error.issues.forEach((issue) =>
-      returnParams.append(issue.path.join('.') + '.e', issue.message),
+      returnParams.append(issue.path.join(".") + ".e", issue.message)
     );
     for (const [key, value] of formData.entries()) {
       // Value is a string because it cannot be a file since this code is run on the server.
@@ -68,7 +68,7 @@ export function parseAndRedirectOnError<D extends ZodSchema>({
     console.log(returnParams.toString());
     redirect(url.href);
     throw Error(
-      'redirect function passed to parseAndRedirectOnError did not redirect',
+      "redirect function passed to parseAndRedirectOnError did not redirect"
     );
   } else {
     return parseResult.data;
@@ -76,7 +76,7 @@ export function parseAndRedirectOnError<D extends ZodSchema>({
 }
 
 export function createFormHelpers<D extends object>(
-  schema?: ZodSchema<D>,
+  schema?: ZodSchema<D>
 ): {
   fieldName: (...args: ObjectPaths<D>) => string;
   fieldValue: (
@@ -88,30 +88,40 @@ export function createFormHelpers<D extends object>(
     ...args: ObjectPaths<D>
   ) => string | undefined;
   useFieldValue: (
-    searchParams: URLSearchParams,
+    searchParams: URLSearchParams
   ) => (...args: ObjectPaths<D>) => string | undefined;
   useFieldError: (
-    searchParams: URLSearchParams,
+    searchParams: URLSearchParams
   ) => (...args: ObjectPaths<D>) => string | undefined;
   prefix: <P extends Prefixes<ObjectPaths<D>>>(prefix: P) => P;
 } {
   return {
-    fieldName: (...args) => args.join('.'),
+    fieldName: (...args) => args.join("."),
     fieldError: (searchParams, ...args) =>
-      searchParams.get(args.join('.') + '.e') ?? undefined,
+      searchParams.get(args.join(".") + ".e") ?? undefined,
     fieldValue: (searchParams, ...args) =>
-      searchParams.get(args.join('.') + '.v') ?? undefined,
+      searchParams.get(args.join(".") + ".v") ?? undefined,
     useFieldError:
       (searchParams) =>
       (...args) =>
-        searchParams.get(args.join('.') + '.e') ?? undefined,
+        searchParams.get(args.join(".") + ".e") ?? undefined,
     useFieldValue:
       (searchParams) =>
       (...args) =>
-        searchParams.get(args.join('.') + '.v') ?? undefined,
+        searchParams.get(args.join(".") + ".v") ?? undefined,
     prefix: (prefix) => prefix,
   };
 }
+
+const isPrimitive = (schema: ZodSchema): boolean => {
+  return (
+    schema instanceof ZodString ||
+    schema instanceof ZodNumber ||
+    schema instanceof ZodBoolean ||
+    schema instanceof ZodLiteral ||
+    schema instanceof ZodEnum
+  );
+};
 
 function buildObjectFromFormData({
   formData,
@@ -124,7 +134,7 @@ function buildObjectFromFormData({
 }): unknown {
   // console.log(`Parsing ${(schema as any).constructor.name} at ${path}`);
 
-  const prefix = path ? `${path}.` : '';
+  const prefix = path ? `${path}.` : "";
 
   // Recursive Cases
   if (schema instanceof ZodObject) {
@@ -136,7 +146,7 @@ function buildObjectFromFormData({
           path: prefix + key,
         });
         return [key, v];
-      }),
+      })
     );
   } else if (schema instanceof ZodDiscriminatedUnion) {
     const type = schema.discriminator;
@@ -147,14 +157,14 @@ function buildObjectFromFormData({
     return buildObjectFromFormData({
       formData,
       schema: objectSchema,
-      path: prefix,
+      path,
     });
   } else if (schema instanceof ZodArray) {
     const keys = Array.from(formData.keys()).filter((key) =>
-      key.startsWith(prefix),
+      key.startsWith(prefix)
     );
     const indicies = keys
-      .map((key) => key.slice(prefix.length).split('.')[0])
+      .map((key) => key.slice(prefix.length).split(".")[0])
       .map(Number)
       .filter((n) => !isNaN(n));
     const maxIndex = Math.max(...indicies, -1);
@@ -177,18 +187,35 @@ function buildObjectFromFormData({
       path,
     });
   } else if (schema instanceof ZodOptional) {
-    if (!path) return undefined;
-    const value = formData.get(path);
-    if (!value) return undefined;
-    return buildObjectFromFormData({
-      formData,
-      schema: schema._def.innerType,
-      path,
-    });
+    if (isPrimitive(schema._def.innerType)) {
+      if (!path) return undefined;
+      const value = formData.get(path);
+      if (!value) return undefined;
+      return buildObjectFromFormData({
+        formData,
+        schema: schema._def.innerType,
+        path,
+      });
+    } else {
+      const obj = buildObjectFromFormData({
+        formData,
+        schema: schema._def.innerType,
+        path,
+      });
+      const isUndefined =
+        typeof obj !== "object"
+          ? obj === undefined
+          : obj === null
+          ? true
+          : Array.isArray(obj)
+          ? obj.length === 0
+          : Object.values(obj).every((v) => v === undefined);
+      return isUndefined ? undefined : obj;
+    }
   }
 
   // Base cases
-  if (!path) throw Error('Invalid Zod Schema');
+  if (!path) throw Error("Invalid Zod Schema");
 
   if (
     schema instanceof ZodString ||
@@ -205,16 +232,16 @@ function buildObjectFromFormData({
   }
 
   throw Error(
-    `Schema type ${(schema as any).constructor.name} not implemented yet`,
+    `Schema type ${(schema as any).constructor.name} not implemented yet`
   );
 }
 
 export const zodFormData = <
   Output = any,
   Def extends ZodTypeDef = ZodTypeDef,
-  Input = Output,
+  Input = Output
 >(
-  schema: ZodSchema<Output, Def, Input>,
+  schema: ZodSchema<Output, Def, Input>
 ) => {
   return z.preprocess((formData: unknown) => {
     if (!(formData instanceof FormData)) {
@@ -236,6 +263,6 @@ function stringValue(value: FormDataEntryValue | null): string | undefined {
 function isTruthy(value: FormDataEntryValue | null) {
   const string = stringValue(value);
   if (!string) return false;
-  if (['undefined', 'null', '0', 'false', 'off'].includes(string)) return false;
+  if (["undefined", "null", "0", "false", "off"].includes(string)) return false;
   return true;
 }
