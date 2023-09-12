@@ -1,6 +1,7 @@
 import {
   ZodArray,
   ZodBoolean,
+  ZodDefault,
   ZodDiscriminatedUnion,
   ZodEnum,
   ZodLiteral,
@@ -212,6 +213,12 @@ function buildObjectFromFormData({
           : Object.values(obj).every((v) => v === undefined);
       return isUndefined ? undefined : obj;
     }
+  } else if (schema instanceof ZodDefault) {
+    return buildObjectFromFormData({
+      formData,
+      schema: schema._def.innerType,
+      path,
+    });
   }
 
   // Base cases
