@@ -3,6 +3,7 @@ import {
   ZodBoolean,
   ZodDefault,
   ZodDiscriminatedUnion,
+  ZodEffects,
   ZodEnum,
   ZodLiteral,
   ZodNullable,
@@ -249,7 +250,7 @@ export const zodFormData = <
   Input = Output
 >(
   schema: ZodSchema<Output, Def, Input>
-) => {
+): ZodEffects<ZodSchema<Output, Def, unknown>> => {
   return z.preprocess((formData: unknown) => {
     if (!(formData instanceof FormData)) {
       return formData;
